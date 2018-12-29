@@ -49,4 +49,51 @@ def plot_train_test_histogram(col_name, titanic_all, bins=10):
     plt.bar(x+w, test_plot_data, width=w, label='test', color='red')
     plt.xticks(x+w/2, all_plot_data.index, rotation=90)
     plt.legend(loc='best')
+
+def plot_survival_rate(col_name, titanic_all, bins=10):
+    '''
+    特徴量の値ごとの生存率を描画する
+
+    Parameters
+    ----------
+    col_name : str
+        ヒストグラムを描画する列名
+    titanic_all : pd.DataFrame
+        全データ
+    bins : int
+        ヒストグラムのbinの数。valuesがstr型の場合は無視される
+    '''
     
+    # ビン分割
+    all_values = titanic_all[col_name]
+    all_binned_values = get_binned_data(all_values, bins=bins)
+
+    train_flg = titanic_all['Type'] == 'train'
+    train_binned_values = all_binned_values[train_flg]
+
+    # カテゴリごとに集計する
+    feature_df = pd.DataFrame({col_name : train_binned_values, 'Survived' : titanic_all['Survived']})
+    survival_rate_df = feature_df.groupby(col_name).mean()
+    count_df = feature_df.groupby(col_name).count()
+    count_df.columns = ['count']
+    
+    category_survival_df = survival_rate_df.join(count_df)
+
+    # ヒストグラムと生存率をplot
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1, 1, 1)
+
+    ax1.bar(category_survival_df.index, category_survival_df['count'], alpha=0.5)
+    ax1.set_ylabel('count')
+    ax1.set_xticklabels(category_survival_df.index, rotation=90)
+
+    ax2 = ax1.twinx()
+    ax2.plot(category_survival_df.index, category_survival_df['Survived'], color='red', label='Survival')
+    ax2.set_ylabel('Survival rate')
+    ax2.set_ylim([0, 1.2])
+    ax2.legend(loc='best')
+
+    ax1.set_title('Survival rate by {col}'.format(col=col_name))
+    ax1.set_xlabel(col_name)
+
+    print(category_survival_df.to_string(formatters={'Survived': '{:.1%}'.format}))

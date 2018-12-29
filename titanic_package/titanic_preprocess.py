@@ -21,7 +21,7 @@ def get_binned_data(x, bins=10):
         return []
     
     # データ型チェック
-    v = x[0]
+    v = x[x.index[0]]
 
     if not(type(v) is str or type(v) is int or type(v) is float or type(v) is np.float64 or type(v) is np.int64 or type(v) is np.uint8):
         print('Unexpected type: {}'.format(type(v)))
