@@ -208,3 +208,107 @@ def plot_single_regression_result(model, feature, X_train, X_orig, y_train):
     fig, axe = plt.subplots(1, 1)
     plot_feature_result(axe, plot_df)
     
+def get_grid_search_result(model_tuning):
+    '''
+    チューニング結果をまとめたDataFrameを取得する
+    
+    Parameters
+    ----------
+    model_tuning : 
+        GridSearchCVでのチューニング結果
+    '''
+    # パラメタとスコアをまとめる
+    score_df = pd.DataFrame()
+
+    for i, test_score in enumerate(model_tuning.cv_results_['mean_test_score']):
+        param = model_tuning.cv_results_['params'][i]
+        param_df = pd.DataFrame(param.values(), index=param.keys()).T
+
+        # Negative Log Lossの場合はLog Lossに変換する
+        if model_tuning.scoring == 'neg_log_loss':
+            test_score *= -1
+        
+        param_df['score'] = test_score
+
+        score_df = pd.concat([score_df, param_df], axis=0)
+
+    score_df.reset_index(drop=True, inplace=True)
+    
+    return score_df
+
+def plot_rf_tuning_result(model_tuning, x_param_name):
+    '''
+    RandomForestのチューニングの結果をplot
+    
+    Parameters
+    ----------
+    model_tuning : 
+        GridSearchCVでのチューニング結果 
+    
+    x_param_name : str
+        x軸に表示するパラメタ名
+    '''
+    score_df = get_grid_search_result(model_tuning)
+    
+    # x軸に使うパラメタ以外のパラメタ
+    line_param_name = score_df.columns.to_list()
+    line_param_name.remove(x_param_name)
+    line_param_name.remove('score')
+    
+    # 折れ線の凡例: 「パラメタ名=パラメタ値」
+    line_name_list = []
+
+    for i, item in score_df.iterrows():
+        line_name = ''
+
+        for param_name in line_param_name:
+            line_name += ', ' if line_name != '' else ''
+            line_name += param_name + '=' + str(item[param_name])
+
+        line_name_list.append(line_name)
+
+    score_df['line_name'] = line_name_list
+    
+    # x_paramをx軸、line_paramを折れ線グラフで表現
+    _, ax = plt.subplots(1,1)
+    
+    for line_name in np.unique(line_name_list):
+        plot_df = score_df.query('line_name == "{}"'.format(line_name))
+        plot_df = plot_df.sort_values(x_param_name)
+        
+        ax.plot(plot_df[x_param_name], plot_df['score'], '-o', label=line_name)
+        
+    ax.set_title("Grid Search", fontsize=20, fontweight='bold')
+    ax.set_xlabel(x_param_name, fontsize=16)
+    ax.set_ylabel('CV Average LogLoss', fontsize=16)
+    ax.legend(loc="upper right", bbox_to_anchor=(1.4, 0.95, 0.5, .100), fontsize=10)
+    ax.grid('on')
+    
+def plot_rf_param_tuning_result(model_tuning, param_name):
+    '''
+    パラメタごとの結果(平均Score)をplot
+    
+    Parameters
+    ----------
+    model_tuning : 
+        GridSearchCVでのチューニング結果 
+    
+    param_name : str
+        集計軸にとるパラメタ名
+    '''
+    score_df = get_grid_search_result(model_tuning)
+    
+    # 指定したパラメタ軸で平均scoreを集計する
+    plot_df = score_df.groupby(param_name).mean()
+    plot_df = plot_df.sort_values(param_name)
+    
+    # x_paramをx軸、line_paramを折れ線グラフで表現
+    _, ax = plt.subplots(1,1)
+    
+    ax.plot(plot_df.index, plot_df['score'], '-o', label='average score')
+        
+    ax.set_title("Grid Search: " + param_name, fontsize=20, fontweight='bold')
+    ax.set_xlabel(param_name, fontsize=16)
+    ax.set_ylabel('CV Average LogLoss', fontsize=16)
+    ax.legend(fontsize=10)
+    ax.grid('on')    

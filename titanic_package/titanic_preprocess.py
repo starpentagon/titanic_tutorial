@@ -116,3 +116,20 @@ def get_age_ctgr(age, pclass):
         age_ctgr = '60+'
 
     return age_ctgr
+
+def calc_label_count_rank_encoding(titanic_all, feature):
+    '''
+    Label Count Rankエンコーディングを行う
+
+    Parameters
+    -----------
+    titanic_all : pd.DataFrame
+        データセット全体
+        
+    feature : str
+        エンコーディングを行う特徴量名（カテゴリ変数）
+    '''
+    feature_rank = titanic_all.groupby(feature).count()['PassengerId'].rank(ascending=False).astype(int)
+    feature_dict = feature_rank.to_dict()
+    
+    return titanic_all[feature].map(lambda x: feature_dict[x])    
