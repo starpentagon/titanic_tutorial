@@ -117,7 +117,7 @@ def get_age_ctgr(age, pclass):
 
     return age_ctgr
 
-def calc_label_count_rank_encoding(titanic_all, feature):
+def calc_label_count_rank_encoding(titanic_all, feature, key='PassengerId'):
     '''
     Label Count Rankエンコーディングを行う
 
@@ -128,8 +128,86 @@ def calc_label_count_rank_encoding(titanic_all, feature):
         
     feature : str
         エンコーディングを行う特徴量名（カテゴリ変数）
+        
+    key : str
+        集計する際のキー
     '''
-    feature_rank = titanic_all.groupby(feature).count()['PassengerId'].rank(ascending=False).astype(int)
+    feature_rank = titanic_all.groupby(feature).count()[key].rank(ascending=False).astype(int)
     feature_dict = feature_rank.to_dict()
     
-    return titanic_all[feature].map(lambda x: feature_dict[x])    
+    return titanic_all[feature].map(lambda x: feature_dict[x])
+
+def get_title(name):
+    '''
+    敬称(Mr. Mrs. Miss. Master. Dr.　Rev.など)を取得する
+    '''
+    
+    if 'Mr.' in name:
+        return 'Mr.'
+    
+    if 'Mrs.' in name:
+        return 'Mrs.'
+    
+    # Mme.は既婚女性の敬称のため'Mrs.'にする
+    if 'Mme.' in name:
+        return 'Mrs.'
+    
+    if 'Miss.' in name:
+        return 'Miss.'
+    
+    if 'Ms.' in name:
+        return 'Miss.'
+    
+    # Mlle.は未婚女性の敬称のため'Miss.'にする
+    if 'Mlle.' in name:
+        return 'Miss.'
+    
+    if 'Master.' in name:
+        return 'Master.'
+    
+    # Dr.は件数が少ないのでEliteに集約
+    if 'Dr.' in name:
+        return 'Elite'
+    
+    # Rev., Don. Dona. は聖職者の敬称
+    if 'Rev.' in name:
+        return 'Priest'
+    
+    if 'Don.' in name:
+        return 'Priest'
+    
+    if 'Dona.' in name:
+        return 'Priest'
+    
+    # Sir., Lady. Countess.　Jonkheer.貴族の敬称
+    # -> 件数が少ないのでEliteに集約
+    if 'Sir.' in name:
+        return 'Elite'
+    
+    if 'Lady.' in name:
+        return 'Elite'
+    
+    if 'Countess.' in name:
+        return 'Elite'
+    
+    if 'Jonkheer.' in name:
+        return 'Elite'
+    
+    # Col., Capt. は軍の敬称
+    # -> 件数が少ないのでEliteに集約
+    if 'Col.' in name:
+        return 'Elite'
+    
+    if 'Capt.' in name:
+        return 'Elite'
+    
+    if 'Major.' in name:
+        return 'Elite'
+    
+    return 'None'
+
+def get_family_name(name):
+    '''
+    名前から苗字を取得する
+    '''
+    return name.split(',')[0]
